@@ -207,11 +207,11 @@ mod tests {
 
     #[test]
     fn implied_repo_rate_round_trip() {
-        let spot = 100.0;
-        let r = 0.05;
-        let q = 0.02;
-        let u = 0.01;
-        let t = 1.0;
+        let spot: f64 = 100.0;
+        let r: f64 = 0.05;
+        let q: f64 = 0.02;
+        let u: f64 = 0.01;
+        let t: f64 = 1.0;
         let f = spot * ((r - q + u) * t).exp();
         let r2 = implied_repo_rate(spot, f, t, q, u);
         assert!((r2 - r).abs() < 1e-10, "r={r} r2={r2}");
