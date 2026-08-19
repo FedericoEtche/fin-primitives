@@ -352,9 +352,12 @@ mod tests {
     fn test_significance_positive_when_cars_positive() {
         let mut results = Vec::new();
         for i in 0..5 {
-            // Security consistently outperforms benchmark
+            // Security consistently outperforms benchmark, by a slightly
+            // different margin per event so the CARs are not all identical
+            // (identical CARs hit the zero-variance sentinel).
+            let growth = 1.01 + 0.001 * i as f64;
             let prices: Vec<(u64, f64)> = (0..20u64)
-                .map(|j| (1_000_000 + i * 1_000_000 + j * 86_400, 100.0 * (1.01f64).powi(j as i32)))
+                .map(|j| (1_000_000 + i * 1_000_000 + j * 86_400, 100.0 * growth.powi(j as i32)))
                 .collect();
             let bench: Vec<(u64, f64)> = (0..20u64)
                 .map(|j| (1_000_000 + i * 1_000_000 + j * 86_400, 100.0 * (1.005f64).powi(j as i32)))
@@ -372,9 +375,12 @@ mod tests {
     fn test_significance_negative_when_cars_negative() {
         let mut results = Vec::new();
         for i in 0..5 {
-            // Security consistently underperforms benchmark
+            // Security consistently underperforms benchmark, by a slightly
+            // different margin per event so the CARs are not all identical
+            // (identical CARs hit the zero-variance sentinel).
+            let decay = 0.99 - 0.001 * i as f64;
             let prices: Vec<(u64, f64)> = (0..20u64)
-                .map(|j| (1_000_000 + i * 1_000_000 + j * 86_400, 100.0 * (0.99f64).powi(j as i32)))
+                .map(|j| (1_000_000 + i * 1_000_000 + j * 86_400, 100.0 * decay.powi(j as i32)))
                 .collect();
             let bench: Vec<(u64, f64)> = (0..20u64)
                 .map(|j| (1_000_000 + i * 1_000_000 + j * 86_400, 100.0 * (1.005f64).powi(j as i32)))

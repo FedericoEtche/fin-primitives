@@ -147,6 +147,9 @@ impl YieldCurve {
     ///
     /// Formula: `D = sum(t * CF * e^(-r(t)*t)) / sum(CF * e^(-r(t)*t))`
     pub fn duration(&self, cash_flows: &[(f64, f64)]) -> f64 {
+        if self.points.is_empty() {
+            return 0.0;
+        }
         let mut numerator = 0.0f64;
         let mut denominator = 0.0f64;
         for &(t, cf) in cash_flows {
@@ -165,6 +168,9 @@ impl YieldCurve {
     ///
     /// Formula: `C = sum(t^2 * CF * e^(-r(t)*t)) / PV`
     pub fn convexity(&self, cash_flows: &[(f64, f64)]) -> f64 {
+        if self.points.is_empty() {
+            return 0.0;
+        }
         let mut numerator = 0.0f64;
         let mut denominator = 0.0f64;
         for &(t, cf) in cash_flows {

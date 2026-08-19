@@ -328,7 +328,9 @@ mod tests {
         for tf in Timeframe::ALL {
             mts.update_timeframe(tf, 101.0);
         }
-        let result = mts.update_timeframe(Timeframe::D1, 101.0);
+        // D1 already saw 101.0 in the loop above; push a higher close so its
+        // momentum stays bullish on this extra update.
+        let result = mts.update_timeframe(Timeframe::D1, 102.0);
         assert!(
             matches!(result, MultiTfResult::Confirmed { direction: SignalDirection::Bullish, .. }),
             "expected Confirmed Bullish, got {result:?}"

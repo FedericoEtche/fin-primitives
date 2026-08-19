@@ -226,12 +226,14 @@ pub enum PairSignal {
 /// use fin_primitives::pairs_trading::{PairsStrategy, PairSignal};
 ///
 /// let strategy = PairsStrategy::new(1.0, 0.0, 1.0, 2.0).unwrap();
-/// // spread 2 std above mean → short spread (short A, long B)
-/// assert_eq!(strategy.generate_signal(2.0), PairSignal::EnterShortLong);
-/// // spread 2 std below mean → long spread (long A, short B)
-/// assert_eq!(strategy.generate_signal(-2.0), PairSignal::EnterLongShort);
-/// // spread within threshold
-/// assert_eq!(strategy.generate_signal(0.5), PairSignal::Hold);
+/// // spread 2.5 std above mean → short spread (short A, long B)
+/// assert_eq!(strategy.generate_signal(2.5), PairSignal::EnterShortLong);
+/// // spread 2.5 std below mean → long spread (long A, short B)
+/// assert_eq!(strategy.generate_signal(-2.5), PairSignal::EnterLongShort);
+/// // spread inside the entry threshold but outside the exit band
+/// assert_eq!(strategy.generate_signal(1.5), PairSignal::Hold);
+/// // spread back near the mean → exit
+/// assert_eq!(strategy.generate_signal(0.5), PairSignal::Exit);
 /// ```
 #[derive(Debug, Clone)]
 pub struct PairsStrategy {
@@ -395,9 +397,7 @@ mod tests {
             statistic: -3.5,
             critical_values: [-3.43, -2.86, -2.57],
         };
-        assert!(!adf.is_stationary_at_1pct()); // -3.5 < -3.43 → true
-        // actually -3.5 < -3.43 is true
-        assert!(adf.is_stationary_at_1pct());
+        assert!(adf.is_stationary_at_1pct()); // -3.5 < -3.43
         assert!(adf.is_stationary_at_5pct());
         assert!(adf.is_stationary_at_10pct());
     }
@@ -469,7 +469,9 @@ mod tests {
         let mean = t.mean().unwrap();
         assert!((mean - 5.0).abs() < 1e-10);
         let var = t.variance().unwrap();
-        assert!((var - 4.0).abs() < 0.01);
+        // Sample (Bessel-corrected) variance: sum of squared deviations is 32,
+        // over n-1 = 7 observations.
+        assert!((var - 32.0 / 7.0).abs() < 1e-10);
     }
 
     #[test]

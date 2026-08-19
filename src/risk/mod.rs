@@ -2834,7 +2834,10 @@ mod risk_metrics_tests {
 
     #[test]
     fn calmar_positive_rising_equity() {
-        let rets: Vec<f64> = (0..50).map(|i| 0.001 * (i as f64 + 1.0)).collect();
+        // Rising equity curve with one dip: calmar is documented to return 0.0
+        // when there is no drawdown at all, so the series needs a real one.
+        let mut rets: Vec<f64> = (0..50).map(|i| 0.001 * (i as f64 + 1.0)).collect();
+        rets[25] = -0.005;
         let c = RiskMetrics::calmar(&rets, 252.0);
         assert!(c > 0.0, "calmar should be positive: {c}");
     }
@@ -2910,6 +2913,7 @@ mod risk_metrics_tests {
     #[test]
     fn annualized_volatility_zero_for_constant_returns() {
         let rets = vec![0.01; 100];
-        assert_eq!(RiskMetrics::annualized_volatility(&rets, 252.0), 0.0);
+        let vol = RiskMetrics::annualized_volatility(&rets, 252.0);
+        assert!(vol.abs() < 1e-12, "constant returns → zero volatility: {vol}");
     }
 }

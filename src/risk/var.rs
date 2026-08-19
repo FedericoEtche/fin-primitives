@@ -337,15 +337,17 @@ impl VaRCalculator {
         let skew = Self::skewness(returns);
         let kurt = Self::excess_kurtosis(returns);
 
-        let z = -Self::probit(1.0 - confidence); // ~1.645 for 95%
+        let z = Self::probit(1.0 - confidence); // signed lower-tail quantile, ~-1.645 for 95%
 
-        // Cornish-Fisher expansion
+        // Cornish-Fisher expansion on the signed quantile: negative skew and
+        // the kurtosis adjustment push the loss quantile further into the
+        // tail, so VaR increases for negatively skewed returns.
         let z_cf = z
             + (z.powi(2) - 1.0) * skew / 6.0
             + (z.powi(3) - 3.0 * z) * kurt / 24.0
             - (2.0 * z.powi(3) - 5.0 * z) * skew.powi(2) / 36.0;
 
-        let daily_var_pct = -(mu - z_cf * sigma);
+        let daily_var_pct = -(mu + z_cf * sigma);
         let var_pct = (daily_var_pct * (horizon_days as f64).sqrt()).max(0.0);
         let var_usd = var_pct * position_value;
 

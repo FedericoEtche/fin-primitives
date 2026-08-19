@@ -322,7 +322,10 @@ mod tests {
 
     #[test]
     fn viterbi_all_negative_returns_is_bear() {
-        let returns: Vec<f64> = vec![-0.010; 50];
+        // -1% is only 1.1σ under Bull (σ=1%) but the Bear density (σ=2.5%)
+        // has a 2.5x lower peak, so -1% actually decodes to Bull. -3% is
+        // decisively in Bear territory.
+        let returns: Vec<f64> = vec![-0.030; 50];
         let params = HmmParams::default_financial();
         let states = viterbi(&returns, &params);
         assert_eq!(states.len(), returns.len());
