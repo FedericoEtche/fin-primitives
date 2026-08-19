@@ -827,15 +827,18 @@ mod bsm_inputs_tests {
 
     #[test]
     fn call_delta_near_half_atm() {
-        let (inp, ot) = atm_call();
+        let (mut inp, ot) = atm_call();
+        // At r=5% the ATM-spot delta is N(0.35) ≈ 0.637, not ~0.5; with r=0
+        // it is N(σ√T/2) ≈ 0.540, which is the "near half" regime.
+        inp.r = 0.0;
         let d = delta(&inp, ot);
-        // ATM delta is slightly above 0.5 due to r>0
         assert!((d - 0.5).abs() < 0.1, "ATM call delta should be ~0.5, got {d}");
     }
 
     #[test]
     fn put_delta_near_neg_half_atm() {
-        let (inp, ot) = atm_put();
+        let (mut inp, ot) = atm_put();
+        inp.r = 0.0;
         let d = delta(&inp, ot);
         assert!((d + 0.5).abs() < 0.1, "ATM put delta should be ~-0.5, got {d}");
     }

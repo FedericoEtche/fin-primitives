@@ -101,6 +101,14 @@ impl DiscountCurve {
     ///
     /// For each tenor, solve for the discount factor that reprices the par swap.
     /// The par swap condition: `sum(c * df(t_i) * dcf_i) + df(T) = 1`.
+    ///
+    /// The closed-form solve assumes coupon dates coincide with the curve
+    /// knots (one coupon per knot interval, day-count fraction equal to the
+    /// knot spacing). With knots spaced at the coupon period (e.g. annual
+    /// knots for an annual-pay swap) the bootstrapped curve reprices each
+    /// input swap exactly; with wider gaps (e.g. a 3y→5y knot gap on an
+    /// annual-pay swap) intermediate coupons are discounted off interpolated
+    /// zero rates the solve did not control, and repricing is approximate.
     pub fn from_par_rates(tenors: &[f64], par_rates: &[f64]) -> Self {
         assert_eq!(tenors.len(), par_rates.len(), "tenors and par_rates must have equal length");
         let n = tenors.len();
@@ -368,7 +376,12 @@ mod tests {
 
     #[test]
     fn test_bootstrap_consistent_discount_factors() {
-        let tenors = vec![1.0, 2.0, 3.0, 5.0];
+        // Annual knots for an annual-pay swap: the closed-form bootstrap's
+        // schedule then matches the swap's actual payment schedule, so each
+        // par swap must reprice to zero NPV. (With a knot gap wider than the
+        // coupon period, e.g. 3y→5y, repricing is only approximate — see
+        // from_par_rates docs.)
+        let tenors = vec![1.0, 2.0, 3.0, 4.0];
         let par_rates = vec![0.04, 0.045, 0.048, 0.052];
         let curve = DiscountCurve::from_par_rates(&tenors, &par_rates);
 

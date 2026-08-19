@@ -264,7 +264,10 @@ mod tests {
 
     #[test]
     fn bf_differs_from_bhb_when_benchmark_return_nonzero() {
-        // BF removes the benchmark-level effect, so results differ when total benchmark != 0
+        // BF removes the benchmark-level effect, so per-segment effects differ
+        // when the total benchmark return != 0. (The *totals* are identical by
+        // construction whenever Σwp = Σwb, so the comparison must be
+        // per-segment, not aggregate.)
         let segments = vec![
             Segment::new("A", 0.6, 0.5, 0.15, 0.12),
             Segment::new("B", 0.4, 0.5, 0.08, 0.06),
@@ -273,16 +276,18 @@ mod tests {
             .iter()
             .map(|s| s.benchmark_weight * s.benchmark_return)
             .sum();
+        assert!(benchmark_total.abs() > 1e-12);
 
-        let bhb_alloc: f64 = segments.iter().map(|s| s.allocation_effect()).sum();
-        let bf_alloc: f64 = segments
-            .iter()
-            .map(|s| s.bf_allocation_effect(benchmark_total))
-            .sum();
-
-        // BF allocation ≠ BHB allocation when benchmark total return ≠ 0
-        assert!((bhb_alloc - bf_alloc).abs() > 1e-10 || benchmark_total.abs() < 1e-12,
-            "BF and BHB should differ when benchmark return is non-zero");
+        for s in &segments {
+            let bhb = s.allocation_effect();
+            let bf = s.bf_allocation_effect(benchmark_total);
+            assert!(
+                (bhb - bf).abs() > 1e-10,
+                "segment {}: BF ({bf}) and BHB ({bhb}) should differ when \
+                 benchmark return is non-zero",
+                s.name
+            );
+        }
     }
 
     #[test]

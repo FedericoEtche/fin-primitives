@@ -127,7 +127,7 @@ pub struct Trade {
 ///
 /// 1. For each symbol in the union of current and target weights, compute the
 ///    weight delta `Δw = target - current`.
-/// 2. If `|Δw| < tolerance`, skip (already within band).
+/// 2. If `|Δw| <= tolerance`, skip (already within band).
 /// 3. Otherwise add a [`Trade`] with the estimated cost for a unit-notional order
 ///    sized proportionally to `|Δw|`.
 /// 4. Trades are sorted by `|Δw|` descending (largest rebalance first).
@@ -166,7 +166,7 @@ impl TurnoverOptimizer {
             let tgt = target.get(symbol).copied().unwrap_or(0.0);
             let delta = tgt - cur;
 
-            if delta.abs() < tolerance {
+            if delta.abs() <= tolerance {
                 continue;
             }
 

@@ -656,6 +656,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn risky_annuity_matches_hand_computed_closed_form() {
+        // Flat r = 4%, flat hazard h = 2%, 5y annual payments, accrual 1.0:
+        //   annuity = sum over t=1..5 of exp(-0.04 t) * exp(-0.02 t) * 1.0
+        //           = sum over t=1..5 of exp(-0.06 t)
+        //           = 4.191401263460949
+        // Both curves are flat, so the piecewise-linear interpolation in df()
+        // and survival_probability() reproduces the closed form exactly.
+        let rf = flat_rf(0.04);
+        let curve = HazardCurve { tenors: vec![5.0], hazard_rates: vec![0.02] };
+        let expected: f64 = (1..=5).map(|t| (-0.06 * t as f64).exp()).sum();
+        assert!((expected - 4.191401263460949).abs() < 1e-12);
+        let annuity = risky_annuity(5.0, 1, &curve, &rf);
+        assert!(
+            (annuity - expected).abs() < 1e-10,
+            "risky_annuity {annuity} vs hand-computed {expected}"
+        );
+        let pv01 = risky_pv01(1.0, 5.0, 1, &curve, &rf);
+        assert!(
+            (pv01 - expected * 1e-4).abs() < 1e-14,
+            "risky_pv01 {pv01} vs hand-computed {}",
+            expected * 1e-4
+        );
+    }
+
     // ---- genuine bootstrap ------------------------------------------------
 
     #[test]
@@ -687,6 +712,34 @@ mod tests {
                 (reimplied - spreads[i]).abs() < 1e-9,
                 "tenor {t}y: re-implied {reimplied} vs quoted {}",
                 spreads[i]
+            );
+        }
+    }
+
+    #[test]
+    fn bootstrap_100_150_200_reprices_each_tenor_to_par() {
+        // Definition of par: a CDS quoted at the bootstrapped curve's input
+        // spread has zero NPV at that curve.
+        let rf = flat_rf(0.04);
+        let tenors = vec![1.0, 3.0, 5.0];
+        let spreads = vec![0.0100, 0.0150, 0.0200]; // 100 / 150 / 200 bps
+        let recovery = 0.4;
+        let curve =
+            HazardCurve::bootstrap_from_par_spreads(&tenors, &spreads, recovery, 4, &rf);
+
+        for (i, &t) in tenors.iter().enumerate() {
+            let spec = CdsSpec {
+                notional: 1.0,
+                premium_rate: spreads[i],
+                tenor_years: t,
+                recovery_rate: recovery,
+                payment_frequency: 4,
+            };
+            let npv = cds_npv(&spec, &curve, &rf, true);
+            assert!(
+                npv.abs() < 1e-8,
+                "tenor {t}y quoted at {} bps should reprice to par, NPV = {npv}",
+                spreads[i] * 1e4
             );
         }
     }

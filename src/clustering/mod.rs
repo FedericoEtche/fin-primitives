@@ -295,7 +295,9 @@ impl CorrelationClusterer {
             }
 
             let denom = a.max(b);
-            let s_i = if denom == 0.0 { 0.0 } else { (b - a) / denom };
+            // b stays infinite when no other cluster is non-empty; the
+            // silhouette is undefined there, so contribute 0 rather than NaN.
+            let s_i = if denom == 0.0 || !denom.is_finite() { 0.0 } else { (b - a) / denom };
             sil_sum += s_i;
             count += 1;
         }
